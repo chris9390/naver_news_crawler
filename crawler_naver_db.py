@@ -294,19 +294,18 @@ for cat in category:
 
                     # =========================================================================================
                     content_list_div_by_point = content.split('.')
+                    for sentence in content_list_div_by_point:
 
-                    # 이미 존재해서 추가되지 않고 업데이트만 된 기사라면
-                    if article_updated_check[idx] == 1:
-                        continue
+                        # 숫자가 포함되지 않은 문장이면 DB에 입력하지 않는다.
+                        if pattern_kor.search(sentence).group() == sentence:
+                            continue
 
-                    # 새로 추가된 기사라면
-                    else:
-                        for sentence in content_list_div_by_point:
+                        # 이미 존재해서 추가되지 않고 업데이트만 된 기사라면
+                        if article_updated_check[idx] == 1:
+                            db_helper.update_crawled_sentence(sentence, ArticleTable_article_id)
 
-                            # 숫자가 포함되지 않은 문장이면 DB에 입력하지 않는다.
-                            if pattern_kor.search(sentence).group() == sentence:
-                                continue
-
+                        # 새로 추가된 기사라면
+                        else:
                             db_helper.insert_crawled_sentence(sentence, ArticleTable_article_id)
 
 
@@ -323,7 +322,7 @@ for cat in category:
 
         current_date += relativedelta(days=1) # to loop back till the end of the the selected date, it addes one day per iteration to reach
 
-    #fw.close()
+
 
     # =========================================
     if stop == 2:
