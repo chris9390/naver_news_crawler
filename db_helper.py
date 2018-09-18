@@ -93,8 +93,11 @@ class DB_Helper:
 
 
 
-    def insert_crawled_article(self, url, title, upl_date, col_date, good, warm, sad, angry, want, aid):
+    def insert_crawled_article(self, url, title, upl_date, col_date, good, warm, sad, angry, want, aid, raw):
         c = self.conn.cursor()
+
+
+        '''
 
         if "'" in title:
             title_replaced = title.replace("'", "''")
@@ -108,10 +111,16 @@ class DB_Helper:
             sql = "INSERT INTO ArticleTable (article_url, article_title, article_uploaded_date, article_collected_date, article_good, article_warm, article_sad, article_angry, article_want, article_aid) " \
                   "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (url, title, upl_date, col_date, good, warm, sad, angry, want, aid)
 
+        '''
 
+        if "'" in title:
+            title = title.replace("'", "''")
+        if "'" in raw:
+            raw = raw.replace("'", "''")
 
-        #sql = "INSERT INTO ArticleTable (article_url, article_title, article_uploaded_date, article_collected_date) " \
-        #      "VALUES (\"%s\", \"%s\", \"%s\", \"%s\")" % (url, title, upl_date, col_date)
+        sql = 'INSERT INTO ArticleTable (article_url, article_title, article_uploaded_date, article_collected_date, article_good, article_warm, article_sad, article_angry, article_want, article_aid, article_raw) ' \
+              'VALUES (\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')' % (url, title, upl_date, col_date, good, warm, sad, angry, want, aid, raw)
+
 
 
         self.print_sql(sql)
@@ -126,6 +135,7 @@ class DB_Helper:
     def insert_crawled_sentence(self, original, article_id):
         c = self.conn.cursor()
 
+        '''
         if "'" in original:
             original_replaced = original.replace("'", "''")
             sql = "INSERT INTO SentenceTable (sent_original, ArticleTable_article_id) VALUES ('%s', '%s')" % (original_replaced, article_id)
@@ -134,10 +144,13 @@ class DB_Helper:
             sql = "INSERT INTO SentenceTable (sent_original, ArticleTable_article_id) VALUES ('%s', '%s')" % (original_replaced, article_id)
         else:
             sql = "INSERT INTO SentenceTable (sent_original, ArticleTable_article_id) VALUES ('%s', '%s')" % (original, article_id)
+        '''
 
 
+        if "'" in original:
+            original = original.replace("'", "''")
+        sql = 'INSERT INTO SentenceTable (sent_original, ArticleTable_article_id) VALUES (\'%s\', \'%s\')' % (original, article_id)
 
-        #sql = "INSERT INTO SentenceTable (sent_original, ArticleTable_article_id) VALUES (\"%s\", \"%s\")" % (original, article_id)
 
 
 
@@ -184,18 +197,17 @@ class DB_Helper:
         rows = c.fetchall()
         return rows
 
-    def select_data_from_table_by_id(self, column_name, table_name, id):
+
+    def select_data_from_table_by_something(self, column_name, table_name, where_col_name, where_val):
         c = self.conn.cursor()
 
-        if table_name == 'ArticleTable':
-            sql = "SELECT %s as data FROM %s WHERE article_id = %s" % (column_name, table_name, id)
-        elif table_name == 'SentenceTable':
-            sql = "SELECT %s as data FROM %s WHERE sent_id = %s" % (column_name, table_name, id)
+        sql = "SELECT %s as data FROM %s WHERE %s = %s" % (column_name, table_name, where_col_name, where_val)
 
         c.execute(sql)
 
         row = c.fetchone()['data']
         return row
+
 
 
 
@@ -208,6 +220,19 @@ class DB_Helper:
 
         row = c.fetchone()['id']
         return row
+
+
+
+    def select_smallest_sent_id_of_one_article(self, article_id):
+        c = self.conn.cursor()
+
+        sql = "SELECT sent_id as id FROM SentenceTable WHERE ArticleTable_article_id = %s ORDER BY sent_id ASC LIMIT 1" % article_id
+
+        c.execute(sql)
+
+        row = c.fetchone()['id']
+        return row
+
 
 
     def select_every_rows_including_text_from_table(self, table_name, text):
@@ -227,20 +252,20 @@ class DB_Helper:
     def update_sent_converted(self, text, id):
         c = self.conn.cursor()
 
-
+        '''
         if "'" in text:
             text_replaced = text.replace("'", "''")
             sql = "UPDATE SentenceTable SET sent_converted = '%s' WHERE sent_id = %s" % (text_replaced, id)
-
-
         elif '"' in text:
             text_replaced = text.replace('"', '""')
             sql = 'UPDATE SentenceTable SET sent_converted = "%s" WHERE sent_id = %s' % (text_replaced, id)
-
-
         else:
             sql = "UPDATE SentenceTable SET sent_converted = '%s' WHERE sent_id = %s" % (text, id)
+        '''
 
+        if "'" in text:
+            text = text.replace("'", "''")
+        sql = 'UPDATE SentenceTable SET sent_converted = \'%s\' WHERE sent_id = %s' % (text, id)
 
 
 
@@ -315,20 +340,31 @@ class DB_Helper:
 
 
 
-    def update_crawled_article(self, url, title, upl_date, col_date, good, warm, sad, angry, want, aid):
+    def update_crawled_article(self, url, title, upl_date, col_date, good, warm, sad, angry, want, aid, raw):
         c = self.conn.cursor()
 
+        '''
         if "'" in title:
             title_replaced = title.replace("'", "''")
-            sql = "UPDATE ArticleTable SET article_url = '%s', article_title = '%s', article_uploaded_date = '%s', article_collected_date = '%s', article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s" \
-                  " WHERE article_aid = '%s'" % (url, title_replaced, upl_date, col_date, good, warm, sad, angry, want, aid)
+            sql = "UPDATE ArticleTable SET article_url = \"%s\", article_title = \"%s\", article_uploaded_date = \"%s\", article_collected_date = \"%s\", article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s" \
+                  " WHERE article_aid = \"%s\"" % (url, title_replaced, upl_date, col_date, good, warm, sad, angry, want, aid)
         elif '"' in title:
             title_replaced = title.replace('"', '""')
-            sql = 'UPDATE ArticleTable SET article_url = "%s", article_title = "%s", article_uploaded_date = "%s", article_collected_date = "%s", article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s' \
-                  ' WHERE article_aid = "%s"' % (url, title_replaced, upl_date, col_date, good, warm, sad, angry, want, aid)
+            sql = "UPDATE ArticleTable SET article_url = \"%s\", article_title = \"%s\", article_uploaded_date = \"%s\", article_collected_date = \"%s\", article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s" \
+                  " WHERE article_aid = \"%s\"" % (url, title_replaced, upl_date, col_date, good, warm, sad, angry, want, aid)
         else:
-            sql = "UPDATE ArticleTable SET article_url = '%s', article_title = '%s', article_uploaded_date = '%s', article_collected_date = '%s', article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s" \
-                  " WHERE article_aid = '%s'" % (url, title, upl_date, col_date, good, warm, sad, angry, want, aid)
+            sql = "UPDATE ArticleTable SET article_url = \"%s\", article_title = \"%s\", article_uploaded_date = \"%s\", article_collected_date = \"%s\", article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s" \
+                  " WHERE article_aid = \"%s\"" % (url, title, upl_date, col_date, good, warm, sad, angry, want, aid)
+        '''
+
+
+        if "'" in title:
+            title = title.replace("'", "''")
+        if "'" in raw:
+            raw = raw.replace("'", "''")
+
+        sql = 'UPDATE ArticleTable SET article_url = \'%s\', article_title = \'%s\', article_uploaded_date = \'%s\', article_collected_date = \'%s\', article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s, article_raw = \'%s\'' \
+              ' WHERE article_aid = \'%s\'' % (url, title, upl_date, col_date, good, warm, sad, angry, want, raw, aid)
 
 
         #self.print_sql(sql)
@@ -341,11 +377,29 @@ class DB_Helper:
         return
 
 
-    def update_crawled_sentence(self, updated_sent, article_id):
+    def update_crawled_sentence(self, updated_sent, article_id, sent_id):
         c = self.conn.cursor()
 
-        sql = "UPDATE SentenceTable SET sent_original = %s, sent_converted = '', sent_modified_date = '0000-00-00 00:00:00', sent_confirm = 0, sent_ambiguity = 0, sent_converted_count = 0, sent_is_added = 0" \
-              " WHERE ArticleTable_article_id = %s" % (updated_sent, article_id)
+        '''
+        if "'" in updated_sent:
+            sent_replaced = updated_sent.replace("'", "''")
+            sql = "UPDATE SentenceTable SET sent_original = '%s', sent_converted = '', sent_modified_date = '0000-00-00 00:00:00', sent_confirm = 0, sent_ambiguity = 0, sent_converted_count = 0, sent_is_added = 0" \
+                  " WHERE ArticleTable_article_id = %s AND sent_id = %s" % (sent_replaced, article_id, sent_id)
+        elif '"' in updated_sent:
+            sent_replaced = updated_sent.replace('"', '""')
+            sql = 'UPDATE SentenceTable SET sent_original = "%s", sent_converted = "", sent_modified_date = "0000-00-00 00:00:00", sent_confirm = 0, sent_ambiguity = 0, sent_converted_count = 0, sent_is_added = 0' \
+                  ' WHERE ArticleTable_article_id = %s AND sent_id = %s' % (sent_replaced, article_id, sent_id)
+        else:
+            sql = "UPDATE SentenceTable SET sent_original = '%s', sent_converted = '', sent_modified_date = '0000-00-00 00:00:00', sent_confirm = 0, sent_ambiguity = 0, sent_converted_count = 0, sent_is_added = 0" \
+                  " WHERE ArticleTable_article_id = %s AND sent_id = %s" % (updated_sent, article_id, sent_id)
+        '''
+
+
+        if "'" in updated_sent:
+            updated_sent = updated_sent.replace("'", "''")
+        sql = 'UPDATE SentenceTable SET sent_original = \'%s\', sent_converted = \'\', sent_modified_date = \'0000-00-00 00:00:00\', sent_confirm = 0, sent_ambiguity = 0, sent_converted_count = 0, sent_is_added = 0' \
+              ' WHERE ArticleTable_article_id = %s AND sent_id = %s' % (updated_sent, article_id, sent_id)
+
 
         print(sql)
 
@@ -358,9 +412,20 @@ class DB_Helper:
     # ===============================================================================================
 
 
-    def delete_sent_by_id(self, id):
+    def delete_sent_by_sentence_id(self, id):
         c = self.conn.cursor()
         sql = "DELETE FROM SentenceTable WHERE sent_id = %s" % (id)
+
+        c.execute(sql)
+        self.conn.commit()
+
+        print("Number of rows deleted: %d" % c.rowcount)
+        return
+
+
+    def delete_sent_by_article_id(self, id):
+        c = self.conn.cursor()
+        sql = "DELETE FROM SentenceTable WHERE ArticleTable_article_id = %s" % (id)
 
         c.execute(sql)
         self.conn.commit()

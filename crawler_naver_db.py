@@ -50,9 +50,9 @@ sid1 = 105
 category = [226,227,283,229,228] # sid1=105 excluding category 230
 
 #start date
-start_date = datetime.datetime(2018, 9, 12)
+start_date = datetime.datetime(2018, 9, 18)
 #end date
-end_date = datetime.datetime(2018, 9, 12)
+end_date = datetime.datetime(2018, 9, 18)
 # print(start_date.month, start_date.day)
 href_base_1 = "http://news.naver.com/main/list.nhn"
 href_base_1_catId = "?sid2="
@@ -60,7 +60,6 @@ href_base_2 ="&sid1={}&mid=shm&mode=LS2D".format(sid1)
 href_date ="&date="
 href_page = "&page=" 
 
-start_page =1
 
 #function that displays data
 def Get_page_Content(_startPage, soup, url_in_use):
@@ -68,7 +67,11 @@ def Get_page_Content(_startPage, soup, url_in_use):
     # source_code =  requests.get(href_use + href_page+ _startPage)
     # plain_text = source_code.text
     # soup = BeautifulSoup(plain_text, "lxml")
+
     content_list = []
+    content_id_list = []
+
+    # 기사가 이미 DB에 등록되어 있으면 이 딕셔너리에 기사 아이디(article_aid) : 1 로 저장이 된다.
     article_updated_check = {}
 
     print("on the **"+str( _startPage)+" **page")
@@ -86,20 +89,16 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 if( len(contents_final.select('dt')) == 2):
                     print(contents_final.select('dt a')[1].text.strip())
 
-                    # =========================================================================================
                     article_title = contents_final.select('dt a')[1].text.strip()
-                    # =========================================================================================
                 else:
                     print(contents_final.select('dt a')[0].text.strip())
 
-                    # =========================================================================================
                     article_title = contents_final.select('dt a')[0].text.strip()
-                    # =========================================================================================
 
                 #href - no needed
                 print(contents_final.select('dt a')[0]['href'])
 
-                # =========================================================================================
+
                 article_url = contents_final.select('dt a')[0]['href']
                 article_collected_date = datetime.datetime.now()
 
@@ -117,7 +116,6 @@ def Get_page_Content(_startPage, soup, url_in_use):
                     else:
                         already_exist = 0
                         article_updated_check[article_aid] = 0
-                # =========================================================================================
 
 
 
@@ -126,7 +124,6 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 plain_text__after_opening_link = main_content_after_opening_link.text
                 soup_after_opening_link = BeautifulSoup(plain_text__after_opening_link, "lxml")
 
-                # =========================================================================================
                 article_uploaded_date = soup_after_opening_link.findAll('span', {'class':'t11'})[0].text
 
 
@@ -137,13 +134,17 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 article_sad = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list sad'})[0].findAll('span')[1].text)
                 article_angry = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list angry'})[0].findAll('span')[1].text)
                 article_want = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list want'})[0].findAll('span')[1].text)
-                # =========================================================================================
 
 
-                #for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'class': 'article_body _font_setting_target size3 font1'}):
+                text = ''
+                article_raw = ''
                 for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
-                    text = main_contents_after_opening_link.select('div#articleBodyContents')[0].text.strip()
-                    content_list.append(text)
+                    article_raw = article_raw + str(main_contents_after_opening_link.select('div#articleBodyContents')[0])
+                    text = text + main_contents_after_opening_link.select('div#articleBodyContents')[0].text.strip()
+
+
+                content_list.append(text)
+                content_id_list.append(article_aid)
 
 
 
@@ -153,7 +154,6 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 print(contents_final.select('dd span.date')[0].text)
 
 
-                # =========================================================================================
                 if already_exist == 1:
                     print("UPDATE")
                     db_helper.update_crawled_article(article_url,
@@ -165,9 +165,10 @@ def Get_page_Content(_startPage, soup, url_in_use):
                                                      article_sad,
                                                      article_angry,
                                                      article_want,
-                                                     article_aid)
+                                                     article_aid,
+                                                     article_raw)
                 else:
-                    print("INSERT")
+                    print("\tINSERT")
                     db_helper.insert_crawled_article(article_url,
                                                      article_title,
                                                      article_uploaded_date,
@@ -177,9 +178,9 @@ def Get_page_Content(_startPage, soup, url_in_use):
                                                      article_sad,
                                                      article_angry,
                                                      article_want,
-                                                     article_aid)
+                                                     article_aid,
+                                                     article_raw)
 
-                # =========================================================================================
 
 
 
@@ -187,7 +188,8 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 print("Error")
             else:
                 print("")
-    return content_list, article_updated_check
+
+    return content_list, content_id_list, article_updated_check
 
 def preprocess_text(text):
     text = text.replace('// flash 오류를 우회하기 위한 함수 추가', '')
@@ -197,15 +199,12 @@ def preprocess_text(text):
 
 
 news_count = 0
+start_page =1
 
-# =========================================================================================
-stop = 0
-ArticleTable_article_id = 1
 
 pattern_email = re.compile(r'([(]*[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*[@][0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}[)]*)')
 pattern_many_points = re.compile(r'[.]{2,}')
 pattern_kor = re.compile(r'[^0-9]*')
-# =========================================================================================
 
 
 #main code start here
@@ -219,17 +218,8 @@ for cat in category:
     while current_date <= end_date:
         current_page = start_page
 
-
         while True:
             try:
-                # =========================================
-                stop += 1
-                if stop == 2:
-                    break
-                # =========================================
-
-
-
                 #make the paging to the current one, so that you will compare it latter with the previous .....
                 #if current page loaded index is less than it was expected to be... Break
                 Prev_calculated_page = current_page
@@ -259,13 +249,18 @@ for cat in category:
                 if (current_page < Prev_calculated_page):
                     break  # end of paging Index
 
-                content_list, article_updated_check = Get_page_Content(current_page, soup, total_total)
 
-                # content_list : 그 페이지의 모든 기사
+                # 기사목록의 한 페이지 내에 있는 여러 기사들을 가져온다.
+                # content_list : 그 페이지의 모든 기사 리스트
+                # content_id_list : 각 기사에 대응하는 고유 id 리스트
+                # article_updated_check : 각 기사id의 업데이트 여부 딕셔너리
+                content_list, content_id_list, article_updated_check = Get_page_Content(current_page, soup, total_total)
+
+
                 # content : 기사 각각
-                for content, idx in zip(content_list, article_updated_check):
+                for content, article_aid in zip(content_list, content_id_list):
+                    article_id = db_helper.select_data_from_table_by_something('article_id', 'ArticleTable', 'article_aid', article_aid)
 
-                    # =========================================================================================
                     for i in pattern_email.findall(content):
                         if type(i) == tuple:
                             pat_string = i[0]
@@ -282,9 +277,9 @@ for cat in category:
                         else:
                             pat_string = i
 
+
                     # 연속적인 2개 이상의 점 제거
                     content = content.replace(pat_string, '')
-                    # =========================================================================================
 
 
                     content = preprocess_text(content)
@@ -292,7 +287,7 @@ for cat in category:
                     content = ' '.join(content.split())
 
 
-                    # =========================================================================================
+                    no_more = 0
                     content_list_div_by_point = content.split('.')
                     for sentence in content_list_div_by_point:
 
@@ -301,22 +296,37 @@ for cat in category:
                             continue
 
                         # 이미 존재해서 추가되지 않고 업데이트만 된 기사라면
-                        if article_updated_check[idx] == 1:
-                            db_helper.update_crawled_sentence(sentence, ArticleTable_article_id)
+                        if article_updated_check[article_aid] == 1:
+
+                            # 하나의 기사에서 처음 한번만 실행되면 되는 부분
+                            if no_more == 0:
+                                sent_id = db_helper.select_smallest_sent_id_of_one_article(article_id)
+                                no_more = 1
+
+                            print("SENT UPDATE\tsent_id: " + str(sent_id))
+
+                            db_helper.update_crawled_sentence(sentence, article_id, sent_id)
+                            sent_id += 1
 
                         # 새로 추가된 기사라면
                         else:
-                            db_helper.insert_crawled_sentence(sentence, ArticleTable_article_id)
+                            print("\tSENT INSERT")
+                            db_helper.insert_crawled_sentence(sentence, article_id)
 
-
-                    ArticleTable_article_id += 1
-                    # =========================================================================================
+                    article_id += 1
 
 
                 # increment the page index so that u will load the next page
                 current_page += 1
 
-                print('### DEBUG - current_page : {}'.format(current_page))
+
+                # =========================================
+                if current_page >= 4:
+                    break
+                # =========================================
+
+
+                print('\n### DEBUG - current_page : {}'.format(current_page))
             except:
                 print("Error")
 
@@ -324,10 +334,16 @@ for cat in category:
 
 
 
+        # =========================================
+        if current_page >= 4:
+            break
+        # =========================================
     # =========================================
-    if stop == 2:
+    if current_page >= 4:
         break
     # =========================================
+
+
     
 print('total news count :', news_count)
 print("Done Crawling " + str(datetime.datetime.today()))
