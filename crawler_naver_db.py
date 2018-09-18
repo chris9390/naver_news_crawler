@@ -156,8 +156,11 @@ def Get_page_Content(_startPage, soup, url_in_use):
 
                 if already_exist == 1:
                     print("UPDATE")
+                    article_title_escaped = conn.escape_string(article_title)
+                    article_raw_escaped = conn.escape_string(article_raw)
+
                     db_helper.update_crawled_article(article_url,
-                                                     article_title,
+                                                     article_title_escaped,
                                                      article_uploaded_date,
                                                      article_collected_date,
                                                      article_good,
@@ -166,11 +169,14 @@ def Get_page_Content(_startPage, soup, url_in_use):
                                                      article_angry,
                                                      article_want,
                                                      article_aid,
-                                                     article_raw)
+                                                     article_raw_escaped)
                 else:
                     print("\tINSERT")
+                    article_title_escaped = conn.escape_string(article_title)
+                    article_raw_escaped = conn.escape_string(article_raw)
+
                     db_helper.insert_crawled_article(article_url,
-                                                     article_title,
+                                                     article_title_escaped,
                                                      article_uploaded_date,
                                                      article_collected_date,
                                                      article_good,
@@ -179,7 +185,7 @@ def Get_page_Content(_startPage, soup, url_in_use):
                                                      article_angry,
                                                      article_want,
                                                      article_aid,
-                                                     article_raw)
+                                                     article_raw_escaped)
 
 
 
@@ -305,13 +311,15 @@ for cat in category:
 
                             print("SENT UPDATE\tsent_id: " + str(sent_id))
 
-                            db_helper.update_crawled_sentence(sentence, article_id, sent_id)
+                            sentence_escaped = conn.escape_string(sentence)
+                            db_helper.update_crawled_sentence(sentence_escaped, article_id, sent_id)
                             sent_id += 1
 
                         # 새로 추가된 기사라면
                         else:
                             print("\tSENT INSERT")
-                            db_helper.insert_crawled_sentence(sentence, article_id)
+                            sentence_escaped = conn.escape_string(sentence)
+                            db_helper.insert_crawled_sentence(sentence_escaped, article_id)
 
                     article_id += 1
 
