@@ -4,6 +4,8 @@ import datetime
 from dateutil.relativedelta import relativedelta
 import re
 
+
+
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -35,9 +37,9 @@ sid1 = 105
 category = [226,227,283,229,228] # sid1=105 excluding category 230
 
 #start date
-start_date = datetime.datetime(2011, 1, 1)
+start_date = datetime.datetime(2018, 9, 12)
 #end date
-end_date = datetime.datetime(2011, 12, 31)
+end_date = datetime.datetime(2018, 9, 12)
 # print(start_date.month, start_date.day)
 href_base_1 = "http://news.naver.com/main/list.nhn"
 href_base_1_catId = "?sid2="
@@ -68,17 +70,27 @@ def Get_page_Content(_startPage, soup, url_in_use):
 
                 if( len(contents_final.select('dt')) == 2):
                     print(contents_final.select('dt a')[1].text.strip())
+
                 else:
                     print(contents_final.select('dt a')[0].text.strip())
 
+
+
                 #href - no needed
                 print(contents_final.select('dt a')[0]['href'])
+
+
+
 
                 #content
                 main_content_after_opening_link = requests.get(contents_final.select('dt a')[0]['href'])
                 plain_text__after_opening_link = main_content_after_opening_link.text
                 soup_after_opening_link = BeautifulSoup(plain_text__after_opening_link, "lxml")
-                for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'class': 'article_body font1 size4'}):
+
+
+                #for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'class': 'article_body _font_setting_target size3 font1'}):
+                for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
+
                     text = main_contents_after_opening_link.select('div#articleBodyContents')[0].text.strip()
                     content_list.append(text)
 
@@ -86,6 +98,7 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 print(contents_final.select('dd span.writing')[0].text)
                 #date
                 print(contents_final.select('dd span.date')[0].text)
+
 
             except:
                 print("Error in the HTML Tag")
@@ -101,6 +114,8 @@ def preprocess_text(text):
 
 
 news_count = 0
+
+
 
 #main code start here
 #for each category in the list
@@ -118,6 +133,9 @@ for cat in category:
     
         while True:
             try:
+
+
+
                 # print ("2")
                 #make the paging to the current one, so that you will compare it latter with the previous .....
                 #if current page loaded index is less than it was expected to be... Break
@@ -127,10 +145,10 @@ for cat in category:
                 print ("link: " +href_use + href_page+ str( current_page))
                 total_total = href_use + href_page+str(current_page)
                 source_code =  requests.get(total_total)
-                print("3")
+                #print("3")
                 plain_text = source_code.text
                 soup = BeautifulSoup(plain_text, "lxml")
-                print ("4")
+                #print ("4")
 
                 # PAGING
                 main_paging = ''
@@ -148,14 +166,16 @@ for cat in category:
                 if (current_page < Prev_calculated_page):
                     break  # end of paging Index
 
-                content_list = Get_page_Content(current_page, soup,total_total)
+                content_list = Get_page_Content(current_page, soup, total_total)
 
                 for content in content_list:
                     content = preprocess_text(content)
                     news_count += 1
                     content = ' '.join(content.split())
+
                     fw.write(content)
                     fw.write('\n')
+
 
                 # increment the page index so that u will load the next page
                 current_page += 1
@@ -167,6 +187,7 @@ for cat in category:
         current_date += relativedelta(days=1) # to loop back till the end of the the selected date, it addes one day per iteration to reach
 
     fw.close()
+
     
 print('total news count :', news_count)
 print("Done Crawling " + str(datetime.datetime.today()))
