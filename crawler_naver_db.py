@@ -297,9 +297,11 @@ for cat in category:
                     content_list_div_by_point = content.split('.')
                     for sentence in content_list_div_by_point:
 
+
                         # 숫자가 포함되지 않은 문장이면 DB에 입력하지 않는다.
                         if pattern_kor.search(sentence).group() == sentence:
                             continue
+
 
                         # 이미 존재해서 추가되지 않고 업데이트만 된 기사라면
                         if article_updated_check[article_aid] == 1:

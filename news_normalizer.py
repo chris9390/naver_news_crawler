@@ -5,14 +5,13 @@ from hanja import hangul
 
 start_time = time.time()
 
-# fp1 = open('/home/private_data/Corpora/news_corpus/2015/100/output_20150101_20151231_100_264.txt', 'r')
-# fp1 = open('/home/private_data/Corpora/news_corpus/2015/101/output_20150101_20151231_101_771.txt', 'r')
-# fp1 = open('/home/private_data/Corpora/news_corpus/2015/102/output_20150101_20151231_102_249.txt', 'r')
-# fp1 = open('/home/private_data/Corpora/news_corpus/2015/103/output_20150101_20151231_103_237.txt', 'r')
-# fp1 = open('/home/private_data/Corpora/news_corpus/2015/104/output_20150101_20151231_104_231.txt', 'r')
-fp1 = open('/home/private_data/Corpora/news_corpus/2015/105/output_20150101_20151231_105_226.txt', 'r')
+
+#fp1 = open('/home/private_data/Corpora/news_corpus/2015/105/output_20150101_20151231_105_226.txt', 'r')
+fp1 = open('/home/public_data/news_corpus/2015/100/output_20150101_20151231_100_264.txt','r')
+
 # fp2 = open('process.txt', 'w')
 fp2 = open('news_norm_2015_105_226.txt', 'w')
+
 fp3 = open('footer2.txt', 'w')
 
 lines = fp1.readlines()
