@@ -127,6 +127,13 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 article_uploaded_date = soup_after_opening_link.findAll('span', {'class':'t11'})[0].text
 
 
+                # 기사의 사진에 관한 설명 부분
+                about_photo_lst = soup_after_opening_link.findAll('em', {'class' : 'img_desc'})
+                if about_photo_lst:
+                    about_photo_text = about_photo_lst[0].text
+
+
+
                 k = soup_after_opening_link.findAll('ul', {'class':'u_likeit_layer _faceLayer'})
 
                 article_good = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list good'})[0].findAll('span')[1].text)
@@ -141,6 +148,10 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
                     article_raw = article_raw + str(main_contents_after_opening_link.select('div#articleBodyContents')[0])
                     text = text + main_contents_after_opening_link.select('div#articleBodyContents')[0].text.strip()
+
+
+                # 기사에 사진에 관한 설명은 삭제
+                text = text.replace(about_photo_text, '')
 
 
                 content_list.append(text)
@@ -294,7 +305,12 @@ for cat in category:
 
 
                     no_more = 0
+
+
+                    # 기사를 일단은 '.'을 문장단위로 해서 나누자 이 부분은 나중에 바꿔야 한다.
                     content_list_div_by_point = content.split('.')
+
+
                     for sentence in content_list_div_by_point:
 
 

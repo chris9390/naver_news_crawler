@@ -59,8 +59,10 @@ for article in articles_before:
 
     # ================================================================================================================
 
-
+    '''
     pattern_LF = re.compile(r'(?<=[겠|니|한|했|이|하]다)(\s*[^가-힝\w]*)(?!이|가|고|라|며|면|는|거나|하|만)(?=[가-힣]|\w)|((?<!\d)(\.|\?)\s*(?=[^\w]))|((?<=[가-힣])(\.|\?)(?=[가-힣]))|((?<=\s)(\.|\?)(?=[가-힣]))|((?<=[가-힣])(\.|\?)(?=\w))')
+    '''
+    pattern_LF = re.compile(r'(?<=다)\s*([.]|[!]|[?]|[,])\s*(?!가|고|라|며|면|는|거나|만)')
     article = pattern_LF.sub('\n', article)
 
 
@@ -73,6 +75,7 @@ for article in articles_before:
         temp = sentence.strip()
         sentences_temp.append(temp)
     sentences = sentences_temp
+
 
     # 한글이 포함되지 않은 문장패턴
     pattern_no_kor = re.compile(r'[^가-힣]*$')
@@ -87,6 +90,9 @@ for article in articles_before:
         if '공식 SNS 계정' in sentence:
             sentences_temp.remove(sentence)
 
+        elif len(sentence) < 15 and ('입니다' in sentence or '기자' in sentence or '특파원' in sentence):
+            sentences_temp.remove(sentence)
+
         # 한글이 포함되지 않은 문장이면 제거
         elif pattern_no_kor.findall(sentence) != ['']:
             a = pattern_no_kor.findall(sentence)
@@ -96,11 +102,13 @@ for article in articles_before:
         elif len(sentence) < 10:
              sentences_temp.remove(sentence)
 
+
     sentences = sentences_temp
 
 
     for i in sentences:
         print(i)
+        fp_write.write(i + '\n')
 
 
     result.append(sentences)
