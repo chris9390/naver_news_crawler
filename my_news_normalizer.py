@@ -1,20 +1,27 @@
 import re
 import hanja
 
-fp_read = open('/home/public_data/news_corpus/2015/100/output_20150101_20151231_100_264.txt','r')
-fp_write = open('result.txt', 'w')
+#fp_read = open('/home/public_data/news_corpus/2015/100/output_20150101_20151231_100_264.txt','r')
+#fp_write = open('result.txt', 'w')
 
-articles_before = fp_read.readlines()
+#articles_before = fp_read.readlines()
 articles_after = []
 result = []
 
-for article in articles_before:
-    sentences = []
+remove_count = 0
+
+#for article in articles_before:
+def my_news_normalizer(article):
+    article_original = article
+    #sentences = []
     sentences_temp = []
+    remove_count = 0
+
 
     # 광고 및 기사 사진에 대한 설명같이 매우 짧은 기사는 생략
     if len(article) < 200:
-        continue
+        #continue
+        return None
 
 
     # 기사 내용과 관계없는 문구 제거
@@ -29,17 +36,17 @@ for article in articles_before:
         article = pattern_copyright.sub('', article)
 
 
-    # 오른쪽 화살표 뒷부분 제거
-    pattern_right_arrow = re.compile(r'▶')
-    if pattern_right_arrow.findall(article):
-        article = pattern_right_arrow.sub('\n', article)
-        article = article.split('\n')[0]
-
-
     # 기사 끝부분에 기자 이메일 포함 뒷부분 제거
     pattern_email = re.compile(r'[(\[<]?[a-z0-9_+.-]+@([a-z0-9-]+[.])+[a-z0-9]{2,4}[)\]>]?')
     if pattern_email.findall(article):
         article = pattern_email.sub('\n', article)
+        article = article.split('\n')[0]
+
+
+    # 오른쪽 화살표 뒷부분 제거
+    pattern_right_arrow = re.compile(r'▶')
+    if pattern_right_arrow.findall(article):
+        article = pattern_right_arrow.sub('\n', article)
         article = article.split('\n')[0]
 
 
@@ -57,7 +64,14 @@ for article in articles_before:
 
 
 
+
     # ================================================================================================================
+
+    article = article.replace('#br#', '\n')
+    article = article.replace('#p#', '\n')
+
+    article_original = article_original.replace('#br#', '\n')
+    article_original = article_original.replace('#p#', '\n')
 
     '''
     pattern_LF = re.compile(r'(?<=[겠|니|한|했|이|하]다)(\s*[^가-힝\w]*)(?!이|가|고|라|며|면|는|거나|하|만)(?=[가-힣]|\w)|((?<!\d)(\.|\?)\s*(?=[^\w]))|((?<=[가-힣])(\.|\?)(?=[가-힣]))|((?<=\s)(\.|\?)(?=[가-힣]))|((?<=[가-힣])(\.|\?)(?=\w))')
@@ -68,6 +82,7 @@ for article in articles_before:
 
     sentences = article.split('\n')
 
+    # ================================================================================================================
 
 
     # 문장들의 좌우 공백 제거
@@ -84,35 +99,50 @@ for article in articles_before:
     # remove를 수행하기 위한 sentences의 복사본
     sentences_temp = sentences
 
+
     # 문장단위로 보면서 한번 더 필터링
     for sentence in sentences:
 
-        if '공식 SNS 계정' in sentence:
+        if len(sentence) < 15 and ('입니다' in sentence or '기자' in sentence or '특파원' in sentence) and sentence in sentences_temp:
             sentences_temp.remove(sentence)
+            remove_count += 1
 
-        elif len(sentence) < 15 and ('입니다' in sentence or '기자' in sentence or '특파원' in sentence):
-            sentences_temp.remove(sentence)
-
-        # 한글이 포함되지 않은 문장이면 제거
-        elif pattern_no_kor.findall(sentence) != ['']:
-            a = pattern_no_kor.findall(sentence)
-            sentences_temp.remove(sentence)
 
         # 문장 길이가 10글자 미만이면 제거
-        elif len(sentence) < 10:
-             sentences_temp.remove(sentence)
+        if len(sentence) < 10 and sentence in sentences_temp:
+            sentences_temp.remove(sentence)
+            remove_count += 1
 
+
+        if '공식 SNS 계정' in sentence and sentence in sentences_temp:
+            sentences_temp.remove(sentence)
+            remove_count += 1
+
+
+        # 한글이 포함되지 않은 문장이면 제거
+        if pattern_no_kor.findall(sentence) != [''] and sentence in sentences_temp:
+            sentences_temp.remove(sentence)
+            remove_count += 1
 
     sentences = sentences_temp
 
 
+    print('\n===============================================================')
+    print(article_original + '\n')
+    print('\n===============================================================')
     for i in sentences:
-        print(i)
-        fp_write.write(i + '\n')
+        print(i + '\n')
+        #fp_write.write(i + '\n')
+        #result.append(i)
+    print('===============================================================\n')
 
 
-    result.append(sentences)
+    return sentences
 
 
-fp_read.close()
-fp_write.close()
+#print('\nremove count: ' + str(remove_count))
+
+
+
+#fp_read.close()
+#fp_write.close()

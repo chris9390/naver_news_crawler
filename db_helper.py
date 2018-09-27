@@ -197,6 +197,17 @@ class DB_Helper:
         return row
 
 
+    def select_sent_id(self, article_id):
+        c = self.conn.cursor()
+
+        sql = "SELECT sent_id FROM SentenceTable WHERE ArticleTable_article_id = %s" % article_id
+
+        c.execute(sql)
+
+        rows = c.fetchall()
+        return rows
+
+
 
     def select_every_rows_including_text_from_table(self, table_name, text):
         c = self.conn.cursor()

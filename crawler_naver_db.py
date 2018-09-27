@@ -6,6 +6,8 @@ from dateutil.relativedelta import relativedelta
 import re
 from db_helper import DB_Helper
 import pymysql
+import my_news_normalizer
+
 
 conn = pymysql.connect(host='163.239.169.54',
                        port=3306,
@@ -37,7 +39,7 @@ def format_all_date(year, month, day):
 
 #Program starts here
 
-print ("Start Crawling"+str( datetime.datetime.today()))
+print ("Start Crawling" + str( datetime.datetime.today()))
 #category numbers
 sid1 = 105
 # category = [230]
@@ -58,7 +60,11 @@ href_base_1 = "http://news.naver.com/main/list.nhn"
 href_base_1_catId = "?sid2="
 href_base_2 ="&sid1={}&mid=shm&mode=LS2D".format(sid1)
 href_date ="&date="
-href_page = "&page=" 
+href_page = "&page="
+
+
+
+
 
 
 #function that displays data
@@ -122,12 +128,20 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 #content
                 main_content_after_opening_link = requests.get(contents_final.select('dt a')[0]['href'])
                 plain_text__after_opening_link = main_content_after_opening_link.text
+
+
+                # <br>, <p>태그는 '#br#', '#p#' 로 표시를 바꿔서 표시를 남긴다음 my_news_normalizer.py 에서 개행해준다.
+                plain_text__after_opening_link = plain_text__after_opening_link.replace('<br>', '#br#')
+                plain_text__after_opening_link = plain_text__after_opening_link.replace('<p>', '#p#')
+
+
                 soup_after_opening_link = BeautifulSoup(plain_text__after_opening_link, "lxml")
 
                 article_uploaded_date = soup_after_opening_link.findAll('span', {'class':'t11'})[0].text
 
 
                 # 기사의 사진에 관한 설명 부분
+                about_photo_text = ''
                 about_photo_lst = soup_after_opening_link.findAll('em', {'class' : 'img_desc'})
                 if about_photo_lst:
                     about_photo_text = about_photo_lst[0].text
@@ -143,6 +157,7 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 article_want = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list want'})[0].findAll('span')[1].text)
 
 
+
                 text = ''
                 article_raw = ''
                 for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
@@ -151,7 +166,8 @@ def Get_page_Content(_startPage, soup, url_in_use):
 
 
                 # 기사에 사진에 관한 설명은 삭제
-                text = text.replace(about_photo_text, '')
+                if about_photo_text != '':
+                    text = text.replace(about_photo_text, '')
 
 
                 content_list.append(text)
@@ -170,6 +186,7 @@ def Get_page_Content(_startPage, soup, url_in_use):
                     article_title_escaped = conn.escape_string(article_title)
                     article_raw_escaped = conn.escape_string(article_raw)
 
+
                     db_helper.update_crawled_article(article_url,
                                                      article_title_escaped,
                                                      article_uploaded_date,
@@ -181,10 +198,13 @@ def Get_page_Content(_startPage, soup, url_in_use):
                                                      article_want,
                                                      article_aid,
                                                      article_raw_escaped)
+
+
                 else:
                     print("\tINSERT")
                     article_title_escaped = conn.escape_string(article_title)
                     article_raw_escaped = conn.escape_string(article_raw)
+
 
                     db_helper.insert_crawled_article(article_url,
                                                      article_title_escaped,
@@ -216,7 +236,7 @@ def preprocess_text(text):
 
 
 news_count = 0
-start_page =1
+start_page = 1
 
 
 pattern_email = re.compile(r'([(]*[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*[@][0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}[)]*)')
@@ -235,15 +255,16 @@ for cat in category:
     while current_date <= end_date:
         current_page = start_page
 
+
         while True:
             try:
                 #make the paging to the current one, so that you will compare it latter with the previous .....
                 #if current page loaded index is less than it was expected to be... Break
                 Prev_calculated_page = current_page
-                href_use = href_base_1 +href_base_1_catId
-                href_use+= str(cat) + href_base_2 + href_date +  format_Date_month(current_date.year, '4') +"" + format_Date_month(current_date.month) +"" + format_Date_month(current_date.day)
-                print ("link: " +href_use + href_page+ str( current_page))
-                total_total = href_use + href_page+str(current_page)
+                href_use = href_base_1 + href_base_1_catId
+                href_use += str(cat) + href_base_2 + href_date + format_Date_month(current_date.year, '4') + "" + format_Date_month(current_date.month) + "" + format_Date_month(current_date.day)
+                print ("link: " + href_use + href_page + str(current_page))
+                total_total = href_use + href_page + str(current_page)
                 source_code =  requests.get(total_total)
 
                 plain_text = source_code.text
@@ -277,26 +298,7 @@ for cat in category:
                 # content : 기사 각각
                 for content, article_aid in zip(content_list, content_id_list):
                     article_id = db_helper.select_data_from_table_by_something('article_id', 'ArticleTable', 'article_aid', article_aid)
-
-                    for i in pattern_email.findall(content):
-                        if type(i) == tuple:
-                            pat_string = i[0]
-                        else:
-                            pat_string = i
-
-                    # 이메일 부분 제거
-                    content = content.replace(pat_string, '')
-
-
-                    for i in pattern_many_points.findall(content):
-                        if type(i) == tuple:
-                            pat_string = i[0]
-                        else:
-                            pat_string = i
-
-
-                    # 연속적인 2개 이상의 점 제거
-                    content = content.replace(pat_string, '')
+                    sent_ids = db_helper.select_sent_id(article_id)
 
 
                     content = preprocess_text(content)
@@ -307,12 +309,14 @@ for cat in category:
                     no_more = 0
 
 
-                    # 기사를 일단은 '.'을 문장단위로 해서 나누자 이 부분은 나중에 바꿔야 한다.
-                    content_list_div_by_point = content.split('.')
+                    # 기사를 '.'을 포함한 패턴을 기준으로 해서 나누자.
+                    content_div_by_point = my_news_normalizer.my_news_normalizer(content)
 
+                    if content_div_by_point == None:
+                        continue
 
-                    for sentence in content_list_div_by_point:
-
+                    sent_ids_idx = 0
+                    for sentence in content_div_by_point:
 
                         # 숫자가 포함되지 않은 문장이면 DB에 입력하지 않는다.
                         if pattern_kor.search(sentence).group() == sentence:
@@ -321,17 +325,12 @@ for cat in category:
 
                         # 이미 존재해서 추가되지 않고 업데이트만 된 기사라면
                         if article_updated_check[article_aid] == 1:
-
-                            # 하나의 기사에서 처음 한번만 실행되면 되는 부분
-                            if no_more == 0:
-                                sent_id = db_helper.select_smallest_sent_id_of_one_article(article_id)
-                                no_more = 1
+                            sent_id = sent_ids[sent_ids_idx]['sent_id']
 
                             print("SENT UPDATE\tsent_id: " + str(sent_id))
 
                             sentence_escaped = conn.escape_string(sentence)
                             db_helper.update_crawled_sentence(sentence_escaped, article_id, sent_id)
-                            sent_id += 1
 
                         # 새로 추가된 기사라면
                         else:
@@ -339,7 +338,8 @@ for cat in category:
                             sentence_escaped = conn.escape_string(sentence)
                             db_helper.insert_crawled_sentence(sentence_escaped, article_id)
 
-                    article_id += 1
+
+                        sent_ids_idx += 1
 
 
                 # increment the page index so that u will load the next page
@@ -347,7 +347,7 @@ for cat in category:
 
 
                 # =========================================
-                if current_page >= 4:
+                if current_page == 3:
                     break
                 # =========================================
 
@@ -361,11 +361,11 @@ for cat in category:
 
 
         # =========================================
-        if current_page >= 4:
+        if current_page == 3:
             break
         # =========================================
     # =========================================
-    if current_page >= 4:
+    if current_page == 3:
         break
     # =========================================
 
