@@ -20,49 +20,6 @@ class DB_Helper:
 
         print("SQL:", sql_print)
 
-    def generate_insert_key_values(self, values, without_date_fields=False):
-        """
-        SQL Insert 문에 필요한 key와 values를 생성
-        :param values:
-        :return:
-        """
-        insert_cols = ''
-        insert_string = ''
-
-        if not without_date_fields:
-            values['created_at'] = self.now()
-            values['updated_at'] = self.now()
-
-        for key, value in values.items():
-            if value is not None:
-                insert_cols += '`%s`, ' % key
-                insert_string += '\"%s\", ' % value
-
-        insert_cols = insert_cols.strip()[:-1]
-        insert_string = insert_string.strip()[:-1]
-
-        return insert_cols, insert_string
-
-    def generate_update_key_values(self, values):
-        """
-        SQL Update 문에 필요한 key와 values를 생성
-        :param values:
-        :return:
-        """
-        update_string = ''
-
-        values['updated_at'] = self.now()
-
-        for key, value in values.items():
-            if value == None or len(str(value)) == 0:
-                value = 'null'
-                update_string += '`%s` = %s, ' % (key, value)
-            else:
-                update_string += '`%s` = \'%s\', ' % (key, value)
-
-        update_string = update_string.strip()[:-1]
-
-        return update_string
 
 
 
@@ -93,12 +50,12 @@ class DB_Helper:
 
 
 
-    def insert_crawled_article(self, url, title, upl_date, col_date, good, warm, sad, angry, want, aid, raw):
+    def insert_crawled_article(self, url, title, upl_date, col_date, aid, raw, sid1, sid2):
         c = self.conn.cursor()
 
 
-        sql = "INSERT INTO ArticleTable (article_url, article_title, article_uploaded_date, article_collected_date, article_good, article_warm, article_sad, article_angry, article_want, article_aid, article_raw)" \
-              "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (url, title, upl_date, col_date, good, warm, sad, angry, want, aid, raw)
+        sql = "INSERT INTO ArticleTable (article_url, article_title, article_uploaded_date, article_collected_date, article_aid, article_raw, article_sid1, article_sid2)" \
+              "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (url, title, upl_date, col_date, aid, raw, sid1, sid2)
 
 
         self.print_sql(sql)
@@ -240,7 +197,7 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
+
 
 
     def update_sent_modified_date(self, id):
@@ -256,7 +213,7 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
+
 
 
 
@@ -271,7 +228,7 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
+
 
 
 
@@ -286,7 +243,7 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
+
 
 
 
@@ -301,16 +258,16 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
 
 
 
-    def update_crawled_article(self, url, title, upl_date, col_date, good, warm, sad, angry, want, aid, raw):
+
+    def update_crawled_article(self, url, title, upl_date, col_date, aid, raw, sid1, sid2):
         c = self.conn.cursor()
 
 
-        sql = "UPDATE ArticleTable SET article_url = '%s', article_title = '%s', article_uploaded_date = '%s', article_collected_date = '%s', article_good = %s, article_warm = %s, article_sad = %s, article_angry = %s, article_want = %s, article_raw = '%s'" \
-              " WHERE article_aid = '%s'" % (url, title, upl_date, col_date, good, warm, sad, angry, want, raw, aid)
+        sql = "UPDATE ArticleTable SET article_url = '%s', article_title = '%s', article_uploaded_date = '%s', article_collected_date = '%s', article_raw = '%s', article_sid1 = '%s', article_sid2 = '%s'" \
+              " WHERE article_aid = '%s'" % (url, title, upl_date, col_date, raw, aid, sid1, sid2)
 
 
         #self.print_sql(sql)
@@ -320,7 +277,21 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
+
+
+
+    def update_article_sent_count(self, article_id, cnt):
+        c = self.conn.cursor()
+
+        sql = "UPDATE ArticleTable SET article_sent_count = %s WHERE article_id = %s" % (cnt, article_id)
+
+        self.print_sql(sql)
+
+        c.execute(sql)
+        self.conn.commit()
+
+        print("Number of rows updated: %d" % c.rowcount)
+
 
 
     def update_crawled_sentence(self, updated_sent, article_id, sent_id):
@@ -336,7 +307,8 @@ class DB_Helper:
         self.conn.commit()
 
         print("Number of rows updated: %d" % c.rowcount)
-        return
+
+
 
     # ===============================================================================================
 

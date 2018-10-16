@@ -40,22 +40,24 @@ def format_all_date(year, month, day):
 #Program starts here
 
 print ("Start Crawling" + str( datetime.datetime.today()))
+
 #category numbers
-sid1 = 105
-# category = [230]
-# category = [264,265,266,267,268] # sid1=100 excluding category 269
-# category = [259,258,261,771,260,262,310] # sid1=101 excluding category 263
-# category = [249,250,251,254,252,'59b',255,256] # sid1=102 excluding category 257
-# category = [241,239,240,237,238,376,242,243,244,248] # sid1=103 excluding category 245
-# category = [231,232,233,234] # sid1=104 excluding category 322
-# category = [731,226,227,732,283,229,228] # sid1=105 excluding category 230
-category = [226,227,283,229,228] # sid1=105 excluding category 230
+# 100 : 정치 , 101 : 경제 , 102 : 사회 , 103 : 생활/문화 , 104 : 세계 , 105 : IT/과학
+sid1 = 104
+
+
+# sid1 : 104
+category = [231, 232, 233, 234, 322]
+# sid1 : 105
+#category = [731, 226,227,230, 732, 283,229,228]
+
+
 
 #start date
-start_date = datetime.datetime(2018, 9, 18)
+start_date = datetime.datetime(2018, 10, 5)
 #end date
-end_date = datetime.datetime(2018, 9, 18)
-# print(start_date.month, start_date.day)
+end_date = datetime.datetime(2018, 10, 5)
+
 href_base_1 = "http://news.naver.com/main/list.nhn"
 href_base_1_catId = "?sid2="
 href_base_2 ="&sid1={}&mid=shm&mode=LS2D".format(sid1)
@@ -77,16 +79,12 @@ naver_news_category_103_sid2 = {'241' : '건강정보', '239' : '자동차/시�
 # 세계
 naver_news_category_104_sid2 = {'231' : '아시아/호주', '232' : '미국/중남미', '233' : '유럽', '234' : '중동/아프리카', '322' : '세계 일반'}
 # IT/과학
-naver_news_category_105_sid2 = {'731' : '모바일', '226' : '인터넷/SNS', '227' : '통신/뉴스미디어', '230' : 'IT 일반', '732' : '보안/해킹', '283' : '컴퓨터', '229' : '게임/리뷰', '228' : '과학 일반'}
+naver_news_category_105_sid2 = {'731' : '모바일', '226' : '인터넷/SNS', '227' : '통신/뉴미디어', '230' : 'IT 일반', '732' : '보안/해킹', '283' : '컴퓨터', '229' : '게임/리뷰', '228' : '과학 일반'}
 
 
 
 #function that displays data
 def Get_page_Content(_startPage, soup, url_in_use):
-    #method
-    # source_code =  requests.get(href_use + href_page+ _startPage)
-    # plain_text = source_code.text
-    # soup = BeautifulSoup(plain_text, "lxml")
 
     content_list = []
     content_id_list = []
@@ -126,6 +124,24 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 url = parse.urlparse(article_url)
                 article_aid = parse.parse_qs(url.query)['aid'][0]
 
+                article_sid1 = parse.parse_qs(url.query)['sid1'][0]
+                article_sid1_kor = naver_news_category_sid1[article_sid1]
+
+                article_sid2 = parse.parse_qs(url.query)['sid2'][0]
+                if article_sid1 == '100':
+                    article_sid2_kor = naver_news_category_100_sid2[article_sid2]
+                elif article_sid1 == '101':
+                    article_sid2_kor = naver_news_category_101_sid2[article_sid2]
+                elif article_sid1 == '102':
+                    article_sid2_kor = naver_news_category_102_sid2[article_sid2]
+                elif article_sid1 == '103':
+                    article_sid2_kor = naver_news_category_103_sid2[article_sid2]
+                elif article_sid1 == '104':
+                    article_sid2_kor = naver_news_category_104_sid2[article_sid2]
+                elif article_sid1 == '105':
+                    article_sid2_kor = naver_news_category_105_sid2[article_sid2]
+
+
 
                 rows = db_helper.select_one_column_from_table('article_aid','ArticleTable')
                 for row in rows:
@@ -151,7 +167,28 @@ def Get_page_Content(_startPage, soup, url_in_use):
 
                 soup_after_opening_link = BeautifulSoup(plain_text__after_opening_link, "lxml")
 
-                article_uploaded_date = soup_after_opening_link.findAll('span', {'class':'t11'})[0].text
+                if soup_after_opening_link.findAll('span', {'class':'t11'}):
+                    article_uploaded_date = soup_after_opening_link.findAll('span', {'class':'t11'})[0].text
+                # 기사 업로드 날짜의 태그 형식이 다른 경우 별도의 가공이 필요(네이버 스포츠인 경우)
+                elif soup_after_opening_link.findAll('div', {'class':'news_headline'})[0].findAll('div', {'class' : 'info'})[0].findAll('span')[1].text:
+                    date_temp = soup_after_opening_link.findAll('div', {'class':'news_headline'})[0].findAll('div', {'class' : 'info'})[0].findAll('span')[1].text
+
+                    # '최종수정' 이란 말 잘라내고 양옆 공백 제거
+                    date_temp = (date_temp.strip())[4:].strip()
+
+                    date_temp = date_temp.replace('.', '-')
+
+                    if '오전' in date_temp:
+                        date_temp = date_temp.replace('오전', '')
+                    elif '오후' in date_temp:
+                        date_temp = date_temp.replace('오후', '')
+                        time_part = date_temp.split(':')[0].strip()[-2:]
+
+                        # ':'를 붙인 이유는 날짜 부분을 replace하는 것을 방지하기 위해
+                        date_temp = date_temp.replace(time_part+":", str(int(time_part) + 12)+":")
+
+                    article_uploaded_date = date_temp
+
 
 
                 # 기사의 사진에 관한 설명 부분
@@ -161,7 +198,7 @@ def Get_page_Content(_startPage, soup, url_in_use):
                     about_photo_text = about_photo_lst[0].text
 
 
-
+                '''
                 k = soup_after_opening_link.findAll('ul', {'class':'u_likeit_layer _faceLayer'})
 
                 article_good = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list good'})[0].findAll('span')[1].text)
@@ -169,14 +206,22 @@ def Get_page_Content(_startPage, soup, url_in_use):
                 article_sad = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list sad'})[0].findAll('span')[1].text)
                 article_angry = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list angry'})[0].findAll('span')[1].text)
                 article_want = int(soup_after_opening_link.findAll('li', {'class':'u_likeit_list want'})[0].findAll('span')[1].text)
-
+                '''
 
 
                 text = ''
                 article_raw = ''
-                for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
-                    article_raw = article_raw + str(main_contents_after_opening_link.select('div#articleBodyContents')[0])
-                    text = text + main_contents_after_opening_link.select('div#articleBodyContents')[0].text.strip()
+                if soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
+                    for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'articleBody'}):
+                        article_raw = article_raw + str(main_contents_after_opening_link.select('div#articleBodyContents')[0])
+                        text = text + main_contents_after_opening_link.select('div#articleBodyContents')[0].text.strip()
+                elif soup_after_opening_link.findAll('div', {'id' : 'newsEndContents'}):
+                    for main_contents_after_opening_link in soup_after_opening_link.findAll('div', {'id' : 'newsEndContents'}):
+                        article_raw = article_raw + str(main_contents_after_opening_link)
+                        text = text + main_contents_after_opening_link.text.strip()
+
+
+                article_raw = preprocess_text(article_raw)
 
 
                 # 기사에 사진에 관한 설명은 삭제
@@ -200,38 +245,28 @@ def Get_page_Content(_startPage, soup, url_in_use):
                     article_title_escaped = conn.escape_string(article_title)
                     article_raw_escaped = conn.escape_string(article_raw)
 
-
                     db_helper.update_crawled_article(article_url,
                                                      article_title_escaped,
                                                      article_uploaded_date,
                                                      article_collected_date,
-                                                     article_good,
-                                                     article_warm,
-                                                     article_sad,
-                                                     article_angry,
-                                                     article_want,
                                                      article_aid,
-                                                     article_raw_escaped)
-
+                                                     article_raw_escaped,
+                                                     article_sid1_kor,
+                                                     article_sid2_kor)
 
                 else:
                     print("\tINSERT")
                     article_title_escaped = conn.escape_string(article_title)
                     article_raw_escaped = conn.escape_string(article_raw)
 
-
                     db_helper.insert_crawled_article(article_url,
                                                      article_title_escaped,
                                                      article_uploaded_date,
                                                      article_collected_date,
-                                                     article_good,
-                                                     article_warm,
-                                                     article_sad,
-                                                     article_angry,
-                                                     article_want,
                                                      article_aid,
-                                                     article_raw_escaped)
-
+                                                     article_raw_escaped,
+                                                     article_sid1_kor,
+                                                     article_sid2_kor)
 
 
 
@@ -329,22 +364,36 @@ for cat in category:
                     if content_div_by_point == None:
                         continue
 
-                    sent_ids_idx = 0
-                    for sentence in content_div_by_point:
 
+
+                    already_exist = 0
+                    sent_ids_idx = 0
+                    sentence_count = 0
+                    for sentence in content_div_by_point:
+                        '''
                         # 숫자가 포함되지 않은 문장이면 DB에 입력하지 않는다.
                         if pattern_kor.search(sentence).group() == sentence:
+                            continue
+                        '''
+
+                        # 공백 문장이면 DB에 입력하지 않는다.
+                        if sentence == '':
                             continue
 
 
                         # 이미 존재해서 추가되지 않고 업데이트만 된 기사라면
                         if article_updated_check[article_aid] == 1:
+                            '''
                             sent_id = sent_ids[sent_ids_idx]['sent_id']
 
                             print("SENT UPDATE\tsent_id: " + str(sent_id))
 
                             sentence_escaped = conn.escape_string(sentence)
                             db_helper.update_crawled_sentence(sentence_escaped, article_id, sent_id)
+                            '''
+                            print(" ** 이미 존재하는 기사 ** ")
+                            already_exist = 1
+                            break
 
                         # 새로 추가된 기사라면
                         else:
@@ -352,12 +401,20 @@ for cat in category:
                             sentence_escaped = conn.escape_string(sentence)
                             db_helper.insert_crawled_sentence(sentence_escaped, article_id)
 
-
                         sent_ids_idx += 1
+                        sentence_count += 1
+
+
+
+                    if already_exist == 0:
+                        # 각 기사의 문장 개수 DB에 저장
+                        db_helper.update_article_sent_count(article_id, sentence_count)
+
 
 
                 # increment the page index so that u will load the next page
                 current_page += 1
+
 
 
                 # =========================================
@@ -378,6 +435,7 @@ for cat in category:
         if current_page == 3:
             break
         # =========================================
+
     # =========================================
     if current_page == 3:
         break

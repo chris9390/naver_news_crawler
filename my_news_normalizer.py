@@ -23,6 +23,12 @@ def my_news_normalizer(article):
         #continue
         return None
 
+    '''
+    pattern_include_email = re.compile(r'[가-힣0-9a-zA-Z]{0,10}\s*[가-힣0-9a-zA-Z]{0,10}\s*[가-힣0-9a-zA-Z]{0,10}\s*([(\[<]?[a-z0-9_+.-]+@([a-z0-9-]+[.])+[a-z0-9]{2,4}[)\]>]?)\s*[가-힣0-9a-zA-Z]{0,10}\s*[가-힣0-9a-zA-Z]{0,10}\s*[가-힣0-9a-zA-Z]{0,10}\s*')
+    if pattern_include_email.findall(article):
+        print(pattern_include_email.findall(article))
+    '''
+
 
     # 기사 내용과 관계없는 문구 제거
     pattern_trash = re.compile(r'(© AFP=뉴스1)|(© News1)|(뉴스1)|(포토공용\s*기자)|(본문\s*이미지\s*영역)|(청와대\s*사진기자단)')
@@ -44,7 +50,7 @@ def my_news_normalizer(article):
 
 
     # 오른쪽 화살표 뒷부분 제거
-    pattern_right_arrow = re.compile(r'▶')
+    pattern_right_arrow = re.compile(r'▶|☞')
     if pattern_right_arrow.findall(article):
         article = pattern_right_arrow.sub('\n', article)
         article = article.split('\n')[0]
@@ -74,9 +80,11 @@ def my_news_normalizer(article):
     article_original = article_original.replace('#p#', '\n')
 
     '''
-    pattern_LF = re.compile(r'(?<=[겠|니|한|했|이|하]다)(\s*[^가-힝\w]*)(?!이|가|고|라|며|면|는|거나|하|만)(?=[가-힣]|\w)|((?<!\d)(\.|\?)\s*(?=[^\w]))|((?<=[가-힣])(\.|\?)(?=[가-힣]))|((?<=\s)(\.|\?)(?=[가-힣]))|((?<=[가-힣])(\.|\?)(?=\w))')
+    pattern_LF = re.compile(r'(?<=[겠|니|한|했|이|하]다)(\s*[^가-힣\w]*)(?!이|가|고|라|며|면|는|거나|하|만)(?=[가-힣]|\w)|((?<!\d)(\.|\?)\s*(?=[^\w]))|((?<=[가-힣])(\.|\?)(?=[가-힣]))|((?<=\s)(\.|\?)(?=[가-힣]))|((?<=[가-힣])(\.|\?)(?=\w))')
     '''
-    pattern_LF = re.compile(r'(?<=다)\s*([.]|[!]|[?]|[,])\s*(?!가|고|라|며|면|는|거나|만)')
+
+    # 문장 단위로 나누는 패턴
+    pattern_LF = re.compile(r'(?<=다)\s*([.]|[!]|[,])\s*(?!가|고|라|며|면|는|거나|만)')
     article = pattern_LF.sub('\n', article)
 
 
@@ -124,25 +132,23 @@ def my_news_normalizer(article):
             sentences_temp.remove(sentence)
             remove_count += 1
 
+
+        # '다'로 끝나지 않는('다'가 포함되지 않은) 문장 제거
+        if '다' not in sentence and sentence in sentences_temp:
+            sentences_temp.remove(sentence)
+            remove_count += 1
+
+
     sentences = sentences_temp
 
-
+    '''
     print('\n===============================================================')
     print(article_original + '\n')
     print('\n===============================================================')
     for i in sentences:
         print(i + '\n')
-        #fp_write.write(i + '\n')
-        #result.append(i)
     print('===============================================================\n')
-
+    '''
 
     return sentences
 
-
-#print('\nremove count: ' + str(remove_count))
-
-
-
-#fp_read.close()
-#fp_write.close()
